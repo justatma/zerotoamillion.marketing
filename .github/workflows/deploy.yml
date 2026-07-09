@@ -1,0 +1,43 @@
+name: Deploy to GoDaddy (FTPS)
+
+# Ships the repo to its GoDaddy doc root on every push to main.
+# The FTP account is chrooted to this site's doc root, so server-dir is ./.
+#
+# SAFETY: dangerous-clean-slate stays false. On growthbastards.com (main domain,
+# doc root = /public_html) it must NEVER be enabled — cleaning would delete every
+# sibling site. dry-run is true for the first validated pass; flip to false after
+# the log review.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          server-dir: ./
+          local-dir: ./
+          dangerous-clean-slate: false
+          dry-run: true          # first pass only — review log, then set false
+          # Outward filter: belongs in git, not on the web server (tidiness, not secrecy).
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
+            .gitignore
+            README.md
+            Documentation/**
+            documents/**
+            config.sample.php
+            netlify.toml
